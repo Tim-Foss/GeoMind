@@ -4,6 +4,7 @@ import json
 import datetime
 import math
 import time
+import json_to_csv
 
 # To set your environment variables in your terminal run the following line:
 # export 'BEARER_TOKEN'='<your_bearer_token>'
@@ -147,12 +148,16 @@ def reformat_response(json_response):
                 break
 
     #removes the 'includes' dict from the json object after all pertinent
-    #data has been added to the 'data' list in the json
+    #data has been added to the 'data' list in the json. the 'includes dictionary is
+    #what contains the data scraped from various fields. place field data was already
+    #added to the json_response at this point, so we through out the includes dict
     json_response.pop('includes')
 
     #does not modify the 'meta' dict in the json object
 
 def main():
+    out_csv_filename = 'test_tweet_ds.csv'
+    next_token_filename = 'next_token.txt'
     NUM_TWEETS = 2000
     max_results = 500 #this can max out to 500
 
@@ -161,7 +166,7 @@ def main():
     # Optional params: start_time,end_time,since_id,until_id,max_results,next_token,
     # expansions,tweet.fields,media.fields,poll.fields,place.fields,user.fields
     query_params = {
-        'query': '(capital riot OR Washington D.C. OR #capitalriot) has:geo -is:retweet lang:en place_country:US',
+        'query': '(capital riot OR #capitalriot) has:geo -is:retweet lang:en place_country:US',
         'expansions' : 'geo.place_id',
         'tweet.fields' : 'geo',
         'place.fields' : 'country_code,geo',
@@ -170,30 +175,45 @@ def main():
         'max_results' : max_results,
         'next_token' : None
     }
+    #a lot of tweets have the content: Just posted a photo @ Washington D.C. <url>...
 
-    made_call = time.monotonic()
+    # Possible Query Keywords:
+    # sedition 
+    # proud boys 
+    # #impeachtrumpnow
+    # national guard 
+    # incite OR inciting
+    # extremists
+    # -inauguration
+
+
+    
 
     for i in range(0, math.ceil(NUM_TWEETS / max_results)):
-    
+        #scrape tweets
         json_response = connect_to_endpoint(search_url, query_params)
+        made_call = time.monotonic()
 
-        if cumulative_json:
-            combine_json_responses(cumulative_json, json_response)
-        else:
-            reformat_response(json_response)
-            cumulative_json = json_response  
+        #reformat the json before adding it to the csv
+        reformat_response(json_response)
 
+        #set the next_token query param to be the next token in the meta field of 
+        # the previous json resposnse so that the next response will be the next
+        # tweets in the query.
         query_params['next_token'] = json_response['meta']['next_token']
+
+        #print the json response to a csv file
+        json_to_csv.add_json_to_csv(json_obj = json_response, out_file_str = out_csv_filename)
+
+        #writes the current next token to a file so that scraping tweets from multiple runs
+        #of this function can pick up where it left off.
+        with open(next_token_filename, 'w') as next_tok_file:
+            next_tok_file.write(json_response['meta']['next_token'])
 
         #avoid exception for Too Many Requests (exceeding request rate limit of 1 request per second)
         #(Code taken from twarc/client2.py at https://github.com/DocNow/twarc/blob/main/twarc/client2.py):
         time.sleep(max(0, 3 - time.monotonic() - made_call))
-        made_call = time.monotonic()
-
-    out_file_name = 'offic_search_tweets_test9.txt'
-
-    with open(out_file_name, 'a+') as file_obj:
-        file_obj.write('%s\n' % json.dumps(cumulative_json, indent=4, sort_keys=True))
+        #made_call = time.monotonic()
 
 
 if __name__ == "__main__":

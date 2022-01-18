@@ -1,5 +1,6 @@
 import json
 import pandas as pd
+import os
 
 def print_headers(out_file):
     header_str = 'id,text,place_id,country_code,full_name,SW_Long,SW_Lat,NE_Long,NE_Lat,is_bbox_mid,coord_long,coor_lat\n'
@@ -60,26 +61,57 @@ def obtain_line(j_dict):
 
     return ((','.join(new_line_fields)) + '\n')
 
+def is_file_empty(file_path):
+    #returns true if the file at file_path is empty and exists
+    #found at https://thispointer.com/python-three-ways-to-check-if-a-file-is-empty/
+    return os.path.exists(file_path) and os.stat(file_path).st_size == 0
 
-def main():
-    #in_file_str should be the output file path of running Offic_Twitter_Test_Search_Tweets.py
-    in_file_str = 'offic_search_tweets_test9.txt'
-    #output csv file name:
-    out_file_str = 'tweets_test.csv'
-    with open(in_file_str, 'r') as in_file:
+def add_json_to_csv(json_obj, out_file_str = ''):
+    """
+    This function accepts a json object and writes the contents to an out file.
 
-        json_str = in_file.read()
-        json_obj = json.loads(json_str)
+    Args:
+        json_obj: this argument is the tweet json object that has been reformatted in TweetScraping.py
+        out_file_str: optional. This is the name of the output csv file string. default name is 
+        set below in this function if no string is passed.
+    """
 
-        with open(out_file_str, 'a+', encoding="utf-8") as out_file:
+    if out_file_str == '':
+        out_file_str = 'tweets_test.csv'
+    
+    file_empty = is_file_empty(out_file_str)
 
+    with open(out_file_str, 'a+', encoding="utf-8") as out_file:
+
+        #print csv column labels if the out file is already empty
+        if file_empty:
             print_headers(out_file)
 
-            for j_dict in json_obj['data']:
-                new_line = obtain_line(j_dict)
-                out_file.write(new_line)
+        #for each field in the tweet json data list
+        for j_dict in json_obj['data']:
+            new_line = obtain_line(j_dict)
+            out_file.write(new_line)
+
+
+# def main():
+#     #in_file_str should be the output file path of running Offic_Twitter_Test_Search_Tweets.py
+#     in_file_str = 'offic_search_tweets_test9.txt'
+#     #output csv file name:
+#     out_file_str = 'tweets_test.csv'
+#     with open(in_file_str, 'r') as in_file:
+
+#         json_str = in_file.read()
+#         json_obj = json.loads(json_str)
+
+#         with open(out_file_str, 'a+', encoding="utf-8") as out_file:
+
+#             print_headers(out_file)
+
+#             for j_dict in json_obj['data']:
+#                 new_line = obtain_line(j_dict)
+#                 out_file.write(new_line)
 
 
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()
