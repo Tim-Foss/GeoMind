@@ -64,7 +64,7 @@ def obtain_line(j_dict):
 def is_file_empty(file_path):
     #returns true if the file at file_path is empty and exists
     #found at https://thispointer.com/python-three-ways-to-check-if-a-file-is-empty/
-    return os.path.exists(file_path) and os.stat(file_path).st_size == 0
+    return not os.path.exists(file_path) or (os.path.exists(file_path) and os.stat(file_path).st_size == 0)
 
 def add_json_to_csv(json_obj, out_file_str = ''):
     """
@@ -81,7 +81,7 @@ def add_json_to_csv(json_obj, out_file_str = ''):
     
     file_empty = is_file_empty(out_file_str)
 
-    with open(out_file_str, 'a+', encoding="utf-8") as out_file:
+    with open(out_file_str, 'a', encoding="utf-8") as out_file:
 
         #print csv column labels if the out file is already empty
         if file_empty:
